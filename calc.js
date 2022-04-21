@@ -33,6 +33,10 @@ function burntime(isp, thrust, fuels) {
   return fuels/massflow;
 }
 
+function println(line) {
+ document.getElementById("console").innerHTML += `<p>${line}</p>`;
+}
+
 function fly() { // incomplete, this is just stupid flying with no guidance, throttling, whatnot
   // most importantly, there is no aerodynamic drag!!!
   var step = 10; // number of steps per simulation second
@@ -43,7 +47,14 @@ function fly() { // incomplete, this is just stupid flying with no guidance, thr
   // later we might switch from unit vectors to spherical coordinates
   var thrust, TWR, accel;
   for (let i=0; i<step*seconds; i++) { // say, 10 steps per second of simulation
-    thrust = engine.ispAtm/engine.ispVac * thrust * SRB((i/10)/burnTime(engine.ispAtm, engine.ispAtm/engine.ispVac * thrust, fuel), "circular");
+    if (fuel<=0) {
+      fuel = 0;
+      thrust = 0;  
+    }
+    else {
+      thrust = engine.ispAtm/engine.ispVac * thrust * SRB((i/10)/burnTime(engine.ispAtm, engine.ispAtm/engine.ispVac * thrust, fuel), "circular");
+      fuel = fuel - thrust/engine.ispVac;
+    }
     TWR = thrust/(9.80665*(fuel+tankage+payload));
     accel = (TWR-1)*9.80665;
     // stupid euler integration or something
@@ -54,6 +65,15 @@ function fly() { // incomplete, this is just stupid flying with no guidance, thr
     position[0] = position[0] + velocity[0];
     position[1] = position[1] + velocity[1];
     position[2] = position[2] + velocity[2];
+    
+    println(`Position: ${position}, Velocity: ${velocity}, Thrust: ${thrust}, Mass: ${fuel+tankage+payload}`);
+    if (TWR==0) { // burnout
+      println("SRB burnout");
+    }
+    if (position[1] < 0) { // detect crashes
+      println("Rocket crashed");
+      break;
+    }
   }
   // take the engine, fuel, and pressure states to compute rocket parameters
 }
