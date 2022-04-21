@@ -33,16 +33,27 @@ function burntime(isp, thrust, fuels) {
   return fuels/massflow;
 }
 
-function fly() {
+function fly() { // incomplete, this is just stupid flying with no guidance, throttling, whatnot
+  // most importantly, there is no aerodynamic drag!!!
+  var step = 10; // number of steps per simulation second
+  var seconds = 100; // number of simulation seconds the program should run
   var velocity = [0,0,0]; // x,y,z
   var position = [0,0,0]; // y is up/down, x is e/w, z is n/s
-  var orientation = [0,1,0]; // a vector on a unit sphere, following
+  var orientation = [0,1,0]; // a vector on a unit sphere, following previous rules
+  // later we might switch from unit vectors to spherical coordinates
   var thrust, TWR, accel;
-  for (let i=0; i<1000; i++) { // say, 10 steps per second of simulation
+  for (let i=0; i<step*seconds; i++) { // say, 10 steps per second of simulation
     thrust = engine.ispAtm/engine.ispVac * thrust * SRB((i/10)/burnTime(engine.ispAtm, engine.ispAtm/engine.ispVac * thrust, fuel), "circular");
     TWR = thrust/(9.80665*(fuel+tankage+payload));
     accel = (TWR-1)*9.80665;
+    // stupid euler integration or something
+    velocity[0] = velocity[0] + accel*orientation[0];
+    velocity[1] = velocity[1] + accel*orientation[1];
+    velocity[2] = velocity[2] + accel*orientation[2];
     
+    position[0] = position[0] + velocity[0];
+    position[1] = position[1] + velocity[1];
+    position[2] = position[2] + velocity[2];
   }
   // take the engine, fuel, and pressure states to compute rocket parameters
 }
