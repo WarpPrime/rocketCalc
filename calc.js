@@ -16,6 +16,11 @@ function SRB(t,geo) {
   }
 }
 
+var flightevents = {
+  burnout: undefined,
+  crash: undefined,
+}
+
 var engine = {
   ispAtm: 230, // both isp in seconds
   ispVac: 250, 
@@ -51,7 +56,7 @@ function fly() { // incomplete, this is just stupid flying with no guidance, thr
       thrust = 0;  
     }
     else {
-      thrust = engine.ispAtm/engine.ispVac * engine.thrust * SRB((i/10)/burnTime(engine.ispAtm, engine.ispAtm/engine.ispVac * engine.thrust, fuel), "circular");
+      thrust = engine.ispAtm/engine.ispVac * engine.thrust * SRB((i/step)/burnTime(engine.ispAtm, engine.ispAtm/engine.ispVac * engine.thrust, fuel), "circular");
       fuel = fuel - thrust/(9.80665*engine.ispAtm);
     }
     TWR = thrust/(9.80665*(fuel+tankage+payload));
@@ -65,12 +70,14 @@ function fly() { // incomplete, this is just stupid flying with no guidance, thr
     position[1] = position[1] + velocity[1];
     position[2] = position[2] + velocity[2];
     
-    println(`Position: ${position}, Velocity: ${velocity}, Thrust: ${thrust}, Mass: ${fuel+tankage+payload}`);
-    if (thrust==0) { // burnout
+    println(`T+${i/10} - Position: ${position}, Velocity: ${velocity}, Thrust: ${thrust}, Mass: ${fuel+tankage+payload}`);
+    if (thrust==0 && !flightevents.burnout) { // burnout
       println("SRB burnout");
+      flightevents.burnout = i/step;
     }
     if (position[1] < 0) { // detect crashes
       println("Rocket crashed");
+      flightevents.crash = i/step;
       break;
     }
   }
