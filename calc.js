@@ -3,7 +3,6 @@ function SRB(t,geo) {
   var top,bottom,avg;
   if (t<0) {return 0;}
   if (t>1) {return 0;}
-  
   if (geo == "circular") {
     avg = 1.00596096919;
     top = 7.15853832487*(t**3) - 14.2817979947*(t**2) + 7.12283717675*t + 0.000451083203767;
@@ -24,12 +23,12 @@ var engine = {
   engine: "solid", // liquid, solid, hybrid, etc.
   geo: "circular"
 }
-var fuel = 2000; // mass of fuel, in kg
+var fuel = 1000; // mass of fuel, in kg
 var tankage = 100; // mass of tankage, in kg
 var payload = 300; // mass of payload, in kg
 
-function burntime(isp, thrust, fuels) {
-  var massflow = thrust/isp; 
+function burnTime(isp, thrust, fuels) {
+  var massflow = thrust/(isp*9.80665); 
   return fuels/massflow;
 }
 
@@ -52,8 +51,8 @@ function fly() { // incomplete, this is just stupid flying with no guidance, thr
       thrust = 0;  
     }
     else {
-      thrust = engine.ispAtm/engine.ispVac * thrust * SRB((i/10)/burnTime(engine.ispAtm, engine.ispAtm/engine.ispVac * thrust, fuel), "circular");
-      fuel = fuel - thrust/engine.ispVac;
+      thrust = engine.ispAtm/engine.ispVac * engine.thrust * SRB((i/10)/burnTime(engine.ispAtm, engine.ispAtm/engine.ispVac * engine.thrust, fuel), "circular");
+      fuel = fuel - thrust/(9.80665*engine.ispAtm);
     }
     TWR = thrust/(9.80665*(fuel+tankage+payload));
     accel = (TWR-1)*9.80665;
@@ -67,7 +66,7 @@ function fly() { // incomplete, this is just stupid flying with no guidance, thr
     position[2] = position[2] + velocity[2];
     
     println(`Position: ${position}, Velocity: ${velocity}, Thrust: ${thrust}, Mass: ${fuel+tankage+payload}`);
-    if (TWR==0) { // burnout
+    if (thrust==0) { // burnout
       println("SRB burnout");
     }
     if (position[1] < 0) { // detect crashes
@@ -79,10 +78,8 @@ function fly() { // incomplete, this is just stupid flying with no guidance, thr
 }
 /* liquid engine custom stats
 throttleRange: [1,1], // number, as a float, as the maximum/minimum throttle this engine can take on
-
 solid motor custom stats
 geo: // the type of grain geometry: circular, c-slot, moonburner, 5-finocyl, double anchor, etc.
-
 Circular bore:
 top: 7.15853832487*(t**3) - 14.2817979947*(t**2) + 7.12283717675*t + 0.000451083203767
 bottom: 12.7998297531*(t**6) - 39.9195507656*(t**5) + 44.0987641152*(t**4) - 11.3149390159*(t**3) - 13.6170556358*(t**2) + 7.95567673071*t + 0.00451079034958
