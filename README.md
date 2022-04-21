@@ -10,7 +10,8 @@
 
 ## Changelog
 
-### -0.5 - 4/20/22
+### -0.5
+4/20/22
  - Essentially just framework for the flight simulator
     - Earth's atmospheric pressure
     - Solid motor thrust curves (circular bore only)
