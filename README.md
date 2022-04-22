@@ -10,6 +10,13 @@
 
 ## Changelog
 
+### -0.2 Hotfix
+4/22/22
+ - Fixed broken drag
+ - Prograde and retrograde directions computed
+ - Flight engine mostly complete
+ - Guidance up next!
+
 ### -0.25
 4/21/22
  - Aerodynamic drag!!!
