@@ -16,6 +16,11 @@ function SRB(t,geo) {
   }
 }
 
+var flightevents = {
+  burnout: undefined,
+  crash: undefined,
+}
+
 var engine = {
   ispAtm: 230, // both isp in seconds
   ispVac: 250, 
@@ -24,6 +29,7 @@ var engine = {
   geo: "circular"
 }
 var fuel = 1000; // mass of fuel, in kg
+var fuel_orig = 1000;
 var tankage = 100; // mass of tankage, in kg
 var payload = 300; // mass of payload, in kg
 
@@ -37,9 +43,12 @@ function println(line) {
 }
 
 function fly() { // incomplete, this is just stupid flying with no guidance, throttling, whatnot
-  // most importantly, there is no aerodynamic drag!!!
+  var Cd = 0.35; // drag coefficient
+  var area = 3.14; // cross-sectional area, about 1 meter wide rocket
+
+
   var step = 10; // number of steps per simulation second
-  var seconds = 100; // number of simulation seconds the program should run
+  var seconds = 1000; // number of simulation seconds the program should run
   var velocity = [0,0,0]; // x,y,z
   var position = [0,0,0]; // y is up/down, x is e/w, z is n/s
   var orientation = [0,1,0]; // a vector on a unit sphere, following previous rules
@@ -51,26 +60,35 @@ function fly() { // incomplete, this is just stupid flying with no guidance, thr
       thrust = 0;  
     }
     else {
-      thrust = engine.ispAtm/engine.ispVac * engine.thrust * SRB((i/10)/burnTime(engine.ispAtm, engine.ispAtm/engine.ispVac * engine.thrust, fuel), "circular");
-      fuel = fuel - thrust/(9.80665*engine.ispAtm);
+      thrust = engine.ispAtm/engine.ispVac * engine.thrust * SRB((i/step)/burnTime(engine.ispAtm, engine.ispAtm/engine.ispVac * engine.thrust, fuel_orig), "circular");
+      fuel = fuel - 1/step * thrust/(9.80665*engine.ispAtm);
     }
     TWR = thrust/(9.80665*(fuel+tankage+payload));
     accel = (TWR-1)*9.80665;
+
+    drag1 = drag(density(position[1]), velocity[1], area, Cd);
+    dragTWR = drag1/(9.80665*(fuel+tankage+payload));
+    dragDecel = (dragTWR)*9.80665; // broken/buggy, prob inaccurate
+
     // stupid euler integration or something
-    velocity[0] = velocity[0] + accel*orientation[0];
-    velocity[1] = velocity[1] + accel*orientation[1];
-    velocity[2] = velocity[2] + accel*orientation[2];
+    // drag does not count for prograde
+    velocity[0] = velocity[0] + accel*orientation[0]/step - dragDecel*orientation[0]/step;
+    velocity[1] = velocity[1] + accel*orientation[1]/step - dragDecel*orientation[1]/step;
+    velocity[2] = velocity[2] + accel*orientation[2]/step - dragDecel*orientation[2]/step;
     
-    position[0] = position[0] + velocity[0];
-    position[1] = position[1] + velocity[1];
-    position[2] = position[2] + velocity[2];
-    
-    println(`Position: ${position}, Velocity: ${velocity}, Thrust: ${thrust}, Mass: ${fuel+tankage+payload}`);
-    if (thrust==0) { // burnout
+    position[0] = position[0] + velocity[0]/step;
+    position[1] = position[1] + velocity[1]/step;
+    position[2] = position[2] + velocity[2]/step;
+    if (!flightevents.burnout || i%10 == 0) {
+      println(`T+${i/10} - Position: ${position}, Velocity: ${velocity}, Thrust: ${thrust}, Mass: ${fuel+tankage+payload}`);
+    }
+    if (thrust==0 && !flightevents.burnout) { // burnout
       println("SRB burnout");
+      flightevents.burnout = i/step;
     }
     if (position[1] < 0) { // detect crashes
       println("Rocket crashed");
+      flightevents.crash = i/step;
       break;
     }
   }
@@ -118,6 +136,39 @@ function pressure(h) {
   return pressure;
 }
 
+function density(h) {
+  // density in kg/m^3
+  var density;
+  if (h<11000)   {
+    density = D1(1.225, 288.15, -0.0065, h, 0);
+  }
+  else if (h>=11000 && h<20000) {
+    density = D1(0.36391, 216.65, 0, h, 11000);
+  }
+  else if (h>=20000 && h<32000) {
+    density = D1(0.08803, 216.65, 0.001, h, 20000);
+  }
+  else if (h>=32000 && h<47000) {
+    density = D1(0.01322, 228.65, 0.0028, h, 32000);
+  }
+  else if (h>=47000 && h<51000) {
+    density = D1(0.00143, 270.65, 0, h, 47000);
+  }
+  else if (h>=51000 && h<71000) {
+    density = D1(0.00086, 270.65, -0.0028, h, 51000);
+  }
+  else if (h>=71000 && h<83000) {
+    density = D1(0.000064, 214.65, -0.002, h, 71000);
+  }
+  else if (h>=83000 && h<250000) { // thermosphere
+    density = 0.000007;
+  }
+  else { // exosphere, don't want to deal with infinitesimals that annoy calculation with IEEE 754
+    density = 0;
+  }
+  return density;
+}
+
 function P1(refP, refT, lapse, height, refH) { // reference pressure, temp, lapse rate, height, reference height
   if (lapse == 0) {
     return refP * ((refT + (height-refH)*lapse)/refT) ** ((-9.80665*0.0289644)/(8.3144598*lapse));
@@ -125,4 +176,17 @@ function P1(refP, refT, lapse, height, refH) { // reference pressure, temp, laps
   else {
     return refP * Math.exp((-9.80665*0.0289644*(height-refH))/(8.3144598*refT));
   }
+}
+
+function D1(refD, refT, lapse, height, refH) { // reference density, temp, lapse rate, height, ref height
+  if (lapse == 0) {
+    return refD*Math.exp((-9.80665*0.0289644*(height-refH))/(8.3144598*refT));
+  }
+  else {
+    return refD*(refT/(refT+(height-refH)*lapse))**(1+(9.80665*0.0289644)/(8.3144598*lapse));
+  }
+}
+
+function drag(density, velocity, area, dragcoefficient) {
+  return 1/2 * density * velocity * velocity * dragcoefficient * area;
 }
