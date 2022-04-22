@@ -10,6 +10,16 @@
 
 ## Changelog
 
+### -0.25
+4/21/22
+ - Aerodynamic drag!!!
+ - Drag is kinda buffed a lot
+ - Drag breaks when the rocket is going down
+#### Plans
+ - Compute prograde/retrograde directions
+ - Fix drag
+ - Begin working on guidance
+
 ### -0.5
 4/20/22
  - Essentially just framework for the flight simulator
