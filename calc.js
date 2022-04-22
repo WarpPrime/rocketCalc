@@ -42,6 +42,14 @@ function println(line) {
  document.getElementById("console").innerHTML += `<p>${line}</p>`;
 }
 
+function normalize(vector) {
+  var magnitude = Math.sqrt(vector[0]**2+vector[1]**2+vector[2]**2);
+  if (magnitude == 0) {
+    return [0,0,0];
+  }
+  return [vector[0]/magnitude,vector[1]/magnitude,vector[2]/magnitude];
+}
+
 function fly() { // incomplete, this is just stupid flying with no guidance, throttling, whatnot
   var Cd = 0.35; // drag coefficient
   var area = 3.14; // cross-sectional area, about 1 meter wide rocket
@@ -54,6 +62,7 @@ function fly() { // incomplete, this is just stupid flying with no guidance, thr
   var orientation = [0,1,0]; // a vector on a unit sphere, following previous rules
   // later we might switch from unit vectors to spherical coordinates
   var thrust, TWR, accel;
+  var prograde,retrograde;
   for (let i=0; i<step*seconds; i++) { // say, 10 steps per second of simulation
     if (fuel<=0) {
       fuel = 0;
@@ -70,11 +79,17 @@ function fly() { // incomplete, this is just stupid flying with no guidance, thr
     dragTWR = drag1/(9.80665*(fuel+tankage+payload));
     dragDecel = (dragTWR)*9.80665; // broken/buggy, prob inaccurate
 
+    // compute prograde/retrograde directions here as a unit vector
+    // take these directions into account and multiply the direction xyz into the decel vector
+
+    prograde = normalize(velocity);
+    retrograde = [-prograde[0],-prograde[1],-prograde[2]];
+    
     // stupid euler integration or something
     // drag does not count for prograde
-    velocity[0] = velocity[0] + accel*orientation[0]/step - dragDecel*orientation[0]/step;
-    velocity[1] = velocity[1] + accel*orientation[1]/step - dragDecel*orientation[1]/step;
-    velocity[2] = velocity[2] + accel*orientation[2]/step - dragDecel*orientation[2]/step;
+    velocity[0] = velocity[0] + accel*orientation[0]/step + retrograde[0]*dragDecel*orientation[0]/step;
+    velocity[1] = velocity[1] + accel*orientation[1]/step + retrograde[1]*dragDecel*orientation[1]/step;
+    velocity[2] = velocity[2] + accel*orientation[2]/step + retrograde[2]*dragDecel*orientation[2]/step;
     
     position[0] = position[0] + velocity[0]/step;
     position[1] = position[1] + velocity[1]/step;
