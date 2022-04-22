@@ -63,6 +63,7 @@ function fly() { // incomplete, this is just stupid flying with no guidance, thr
   // later we might switch from unit vectors to spherical coordinates
   var thrust, TWR, accel;
   var prograde,retrograde;
+  var drag1, dragTWR, dragDecel;
   for (let i=0; i<step*seconds; i++) { // say, 10 steps per second of simulation
     if (fuel<=0) {
       fuel = 0;
@@ -76,8 +77,8 @@ function fly() { // incomplete, this is just stupid flying with no guidance, thr
     accel = (TWR-1)*9.80665;
 
     drag1 = drag(density(position[1]), velocity[1], area, Cd);
-    dragTWR = drag1/(9.80665*(fuel+tankage+payload));
-    dragDecel = (dragTWR)*9.80665; // broken/buggy, prob inaccurate
+    dragDecel = drag1/(fuel+tankage+payload);
+    // use F=ma, so a=F/m
 
     // compute prograde/retrograde directions here as a unit vector
     // take these directions into account and multiply the direction xyz into the decel vector
