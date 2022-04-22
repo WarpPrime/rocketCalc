@@ -55,7 +55,7 @@ function fly() { // incomplete, this is just stupid flying with no guidance, thr
   var area = 3.14; // cross-sectional area, about 1 meter wide rocket
 
 
-  var step = 10; // number of steps per simulation second
+  var step = 20; // number of steps per simulation second
   var seconds = 1000; // number of simulation seconds the program should run
   var velocity = [0,0,0]; // x,y,z
   var position = [0,0,0]; // y is up/down, x is e/w, z is n/s
@@ -95,8 +95,8 @@ function fly() { // incomplete, this is just stupid flying with no guidance, thr
     position[0] = position[0] + velocity[0]/step;
     position[1] = position[1] + velocity[1]/step;
     position[2] = position[2] + velocity[2]/step;
-    if (!flightevents.burnout || i%10 == 0) {
-      println(`T+${i/10} - Position: ${position}, Velocity: ${velocity}, Thrust: ${thrust}, Mass: ${fuel+tankage+payload}`);
+    if (!flightevents.burnout || i%step == 0) {
+      println(`T+${i/step} - Position: ${position}, Velocity: ${velocity}, Thrust: ${thrust}, Mass: ${fuel+tankage+payload}, Acceleration: ${(accel-dragDecel)/9.80665}g`);
     }
     if (thrust==0 && !flightevents.burnout) { // burnout
       println("SRB burnout");
